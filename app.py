@@ -1,4 +1,6 @@
-from flask import Flask, request, jsonify
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 import qrcode
 import io
 import smtplib
@@ -6,17 +8,22 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 import os
+import time
 
-app = Flask(__name__)
+app = FastAPI()
 
-@app.route("/send_email", methods=["POST"])
-def send_email():
-    data = request.get_json()
-    name = data.get("name")
-    email = data.get("email")
+class EmailRequest(BaseModel):
+    name: str
+    email: str
+    row: str
+
+@app.post("/send_email")
+async def send_email(data: EmailRequest):
+    name = data.name
+    email = data.email
 
     # Generate unique ID
-    unique_id = f"EVENT-{data.get('row')}-{int(io.time.time())}"
+    unique_id = f"EVENT-{data.row}-{int(time.time())}"
 
     # Generate QR code
     qr = qrcode.make(unique_id)
@@ -33,7 +40,7 @@ def send_email():
     html = f"""
     <p>Dear <b>{name}</b>,</p>
     <p>Please find your unique QR code below:</p>
-    <img src="cid:qrcode">
+    <img src=\"cid:qrcode\">
     <p>Bring this QR on event day for check-in.</p>
     <p>Best Regards,<br>IEEE SB GEHU</p>
     """
@@ -49,7 +56,6 @@ def send_email():
         server.login(os.environ.get("EMAIL_USER"), os.environ.get("EMAIL_PASSWORD"))
         server.sendmail(os.environ.get("EMAIL_USER"), email, msg.as_string())
 
-    return jsonify({"status": "success", "email": email})
+    return JSONResponse(content={"status": "success", "email": email})
 
-if __name__ == "__main__":
-    app.run(debug=True)
+# To run: uvicorn app:app --reload
