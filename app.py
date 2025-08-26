@@ -58,4 +58,7 @@ async def send_email(data: EmailRequest):
 
     return JSONResponse(content={"status": "success", "email": email})
 
-# To run: uvicorn app:app --reload
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("app:app", host="127.0.0.1", port=8000, reload=True)
